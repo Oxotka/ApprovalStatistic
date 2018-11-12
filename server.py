@@ -1,3 +1,6 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
 import cherrypy
 
 
@@ -8,16 +11,8 @@ def add_vote_to_log(filename, project, author, value, comment, date):
         file.write(text + '\n')
 
 
-class VoteCollector(object):
-
-    @cherrypy.expose
-    def add_vote(self, project='', author='', result=True, date='', comment=''):
-        add_vote_to_log('log.txt', project, author, result, comment, date)
-        return 'Спасибо, голос учтен!'
-
-    @cherrypy.expose
-    def add_comment(self, project='', author='', date=''):
-        return """<html>
+def html_form:
+    return """<html>
           <head>Опишите, что пошло не так в согласовании</head>
           <body>
             <br>
@@ -33,7 +28,18 @@ class VoteCollector(object):
               <button type="submit">Отправить в лог</button>
             </form>
           </body>
-        </html>""".format(project=project, author=author, date=date)
+        </html>"""
+
+class VoteCollector(object):
+
+    @cherrypy.expose
+    def add_vote(self, project='', author='', result=True, date='', comment=''):
+        add_vote_to_log('log.txt', project, author, result, comment, date)
+        return 'Спасибо, голос учтен!'
+
+    @cherrypy.expose
+    def add_comment(self, project='', author='', date=''):
+        return html_form().format(project=project, author=author, date=date)
 
 
 if __name__ == '__main__':
