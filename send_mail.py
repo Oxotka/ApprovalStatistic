@@ -139,11 +139,11 @@ def send_message(from_email, from_name, meeting):
     server.quit()
 
 
-login = ''
-password = ''
-from_email = ''
-from_name = ''
-base_url = ''
+login = 'АриповНЯ'
+password = 'Zaq!@34'
+from_email = 'arin@1c.ru'
+from_name = 'Aripov Nikita'
+base_url = 'http://calypso/do8/odata/standard.odata'
 
 for meeting in get_meetings_list(base_url, login, password):
     send_message(from_email, from_name, meeting)
