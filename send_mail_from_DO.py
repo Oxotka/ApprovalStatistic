@@ -9,7 +9,12 @@ from datetime import datetime
 import urllib
 import urllib.parse
 import re
-
+import smtplib
+from textwrap import dedent
+import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.header import Header
 
 def get_meetings_list(login, password):
     base_url = "http://calypso/do8/odata/standard.odata/Catalog_Мероприятия"
@@ -82,6 +87,69 @@ def get_meetings_list(login, password):
     return meetings_list
 
 def send_message(meeting):
+
+
+def template_letter(username='Уважаемый', log='', what=''):
+
+    template = dedent('''\
+               Здравствуйте, {username}.
+                              
+               GitLab CI говорит, что при закладке в хранилище:
+               
+               {log}
+               
+               Вероятно этому есть разумное объяснение:
+               "Возможно, {what_happened}"
+               
+               Но лучше поскорее во всем разобраться.
+               Спасибо за внимание и чудесного дня!''')
+
+    return template.format(username=username, log=log, what_happened=what_happened(what))
+
+
+def subject(happened='Что-то пошло не так'):
+
+    return random_item(list_subject()).format(happened=happened.capitalize())
+
+
+def random_item(items):
+    return items[random.randint(0, len(items) - 1)]
+
+
+def what_happened(happened):
+
+    what_happened = random_item(list_reasons()).format(happened=happened.lower())
+    return what_happened[0].lower() + what_happened[1:]
+
+
+def name(author):
+    fio = author['name'].split(" ")
+    if len(fio) > 1:
+        return fio[1]  # Считаем, что имя всегда идет вторым
+    else:
+        return author['name']
+
+
+def send_message(author, log):
+
+    happened = 'Найдена ошибка'
+    mail_coding = 'windows-1251'
+
+    multi_msg = MIMEMultipart()
+    multi_msg['From'] = 'GitLab CI <gitbp@1c.ru>'
+    multi_msg['To'] = author['email']
+    multi_msg['Subject'] = Header(subject(happened), mail_coding)
+
+    text_msg = template_letter(name(author), log, happened)
+
+    msg = MIMEText(text_msg.encode('cp1251'), 'plain', mail_coding)
+    msg.set_charset(mail_coding)
+    multi_msg.attach(msg)
+
+    # Отправка письма
+    server = smtplib.SMTP('relay.1c.ru', port=25)
+    server.sendmail("gitbp@1c.ru", author['email'], multi_msg.as_string())
+    server.quit()
 
 
 def text_message(meeting):
