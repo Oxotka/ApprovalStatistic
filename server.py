@@ -18,15 +18,16 @@ def html_form():
             Это позволит сделать процессы согласования лучше!
             <br>
             <form method="get" action="add_vote">
-              Автор:<input type="text" value="{author}" name="author">
+              <input type="hidden" name="author" value="{author}">
+              <div>
+              Проект:<input readonly="readonly" value="{project}" name="project" size=50>
+              <input type="hidden" value="{date}" name="date">
+              </div>
+              <div>
+              Комментарий:<input type="text" value="" name="comment" placeholder="Что пошло не так?" size=100/>
               <br>
-              <br>
-              Проект:<input type="text" value="{project}" name="project"> <input type="date" value="{date}" name="date">
-              <br>
-              <br>
-              Комментарий:<input type="text" value="" name="comment" placeholder="Что пошло не так?"/>
-              <br><br>
               <button type="submit">Отправить в лог</button>
+              </div>
             </form>
           </body>
         </html>"""
@@ -45,4 +46,4 @@ class VoteCollector(object):
 
 
 if __name__ == '__main__':
-    cherrypy.quickstart(VoteCollector())
+    cherrypy.quickstart(VoteCollector(), config='server.cfg')
