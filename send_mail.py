@@ -7,6 +7,7 @@ from datetime import datetime
 import urllib
 import urllib.parse
 import smtplib
+import re
 from textwrap import dedent
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -29,9 +30,20 @@ def get_meetings_list(base_url, login, password):
                             allow_redirects=False, verify=False).text
     meetings = json.loads(response)
     meetings_list = []
+    jira_base = "https://abderus.dept07/jira/browse"
+    project_url = None
     for meeting in meetings.get('value'):
         if meeting['DeletionMark']:
             continue
+
+        for addinfo in meeting.get('ДополнительныеРеквизиты'):
+            if addinfo.get('Свойство_Key') == "c8c16600-8138-11e5-9f46-e61f135f2c6f":
+                check_ma = re.search(r'MA|ma', addinfo.get('Значение'))
+                project_type = 'MA-' if check_ma is not None else 'EA-'
+                project_number = re.search(r'\d{2,}', addinfo.get('Значение'))
+                if project_number is not None:
+                    project_name = "{}{}".format(project_type, project_number.group(0))
+                    project_url = "{}/{}".format(jira_base, project_name)
 
         url_user = "{}/Catalog_Пользователи(guid%20'{}')".format(base_url, meeting.get('Организатор'))
         encoded = urllib.parse.urlencode(f).replace('+', '%20')
@@ -51,7 +63,8 @@ def get_meetings_list(base_url, login, password):
                        "Start": start_time.strftime("%H:%M"),
                        "Finish": finish_time.strftime("%H:%M"),
                        "Instigator": instigator,
-                       "Instigator_email": instigator_email}
+                       "Instigator_email": instigator_email,
+                       "Project_url": project_url}
         meetings_list.append(meeting_map)
     return meetings_list
 
@@ -62,7 +75,7 @@ def template_letter(meeting):
                <html><body>
                Привет, {username}.
                <br>
-               <br>Сегодня проводилось согласование по проекту {project_name} в {start_time}.
+               <br>Сегодня проводилось согласование по проекту <a href="{project_url}">{project_name}</a> в {start_time}.
                <br>
                <br>Как прошло согласование?
                <br><a href="{approve}">Согласовано</a>
@@ -75,9 +88,6 @@ def template_letter(meeting):
                <br><b>Не согласовано</b> - если все было эффективно, но решение до конца не принято. 
                <br><b>Ни к чему не пришли</b> - если совещание прошло не эффективно и никакого результата нет.
                В этом случае опишите, что на Ваш взгляд пошло не так.
-               <br>
-               <br>Эта информация собирается только для статистики, чтобы наконец разобраться с проблемой: 
-               <br><b>Согласования проходят неэффективно</b>
                </html></body>''')
 
     url = 'http://localhost:8080'
@@ -87,24 +97,27 @@ def template_letter(meeting):
         start_time=meeting.get('Start'),
         approve=get_approve(url, meeting, True),
         don_t_approve=get_approve(url, meeting, False),
-        don_t_know=get_don_t_know(url, meeting))
+        don_t_know=get_don_t_know(url, meeting),
+        project_url=meeting.get('project_url'))
 
 
 def get_approve(url, meeting, result):
-    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}'.format(
+    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}'.format(
         url=url,
-        project=meeting.get('Name'),
+        project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
         start=meeting.get('Start'),
-        result=result)
+        result=result,
+        project_url=meeting.get("Project_url"))
 
 
 def get_don_t_know(url, meeting):
-    return '{url}/add_comment?project={project}&author={name}&date={start}'.format(
+    return '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}'.format(
         url=url,
-        project=meeting.get('Name'),
+        project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
-        start=meeting.get('Start'))
+        start=meeting.get('Start'),
+        project_url=meeting.get("Project_url"))
 
 
 def name(author):
@@ -139,12 +152,13 @@ def send_message(from_email, from_name, meeting):
     server.quit()
 
 
-login = 'АриповНЯ'
-password = 'Zaq!@34'
-from_email = 'arin@1c.ru'
-from_name = 'Aripov Nikita'
-base_url = 'http://calypso/do8/odata/standard.odata'
+login = ''
+password = ''
+from_email = ''
+from_name = ''
+base_url = ''
 
 for meeting in get_meetings_list(base_url, login, password):
+    print(meeting)
     send_message(from_email, from_name, meeting)
 

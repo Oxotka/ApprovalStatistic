@@ -19,10 +19,13 @@ def html_form():
             <br>
             <form method="get" action="add_vote">
               <input type="hidden" name="author" value="{author}">
+              <input type="hidden" value="{project}" name="project">
+              <input type="hidden" value="{project_url}" name="project_url">
               <div>
-              Проект:<input readonly="readonly" value="{project}" name="project" size=50>
+              Проект: <a href="{project_url}">{project}</a>
               <input type="hidden" value="{date}" name="date">
               </div>
+              <p><p>
               <div>
               Комментарий:<input type="text" value="" name="comment" placeholder="Что пошло не так?" size=100/>
               <br>
@@ -36,13 +39,15 @@ def html_form():
 class VoteCollector(object):
 
     @cherrypy.expose
-    def add_vote(self, project, author, date, comment='None', result='None'):
+    def add_vote(self, project, author, date, comment='None', result='None', project_url=''):
         add_vote_to_log('log.txt', project, author, result, comment, date)
-        return 'Спасибо, голос учтен!'
+        return '''<h1 style="color: #5e9ca0;"><span style="color: #000000;">Спасибо, голос учтен!</span></h1>
+        <p>Опишите результаты согласования здесь - <a href="{project_url}">{project}</a>&nbsp;</p>'''.format(
+            project=project, project_url=project_url)
 
     @cherrypy.expose
-    def add_comment(self, project='', author='', date=''):
-        return html_form().format(project=project, author=author, date=date)
+    def add_comment(self, project='', author='', date='', project_url=''):
+        return html_form().format(project=project, author=author, date=date, project_url=project_url)
 
 
 if __name__ == '__main__':
