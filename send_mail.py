@@ -56,12 +56,10 @@ def get_meetings_list(base_url, login, password):
 
         start_time = datetime.strptime(
             meeting.get('ДатаНачала'), '%Y-%m-%dT%H:%M:%S')
-        finish_time = datetime.strptime(
-            meeting.get('ДатаОкончания'), '%Y-%m-%dT%H:%M:%S')
 
         meeting_map = {"Name": meeting.get('Description'),
                        "Start": start_time.strftime("%H:%M"),
-                       "Finish": finish_time.strftime("%H:%M"),
+                       "Date": start_time.strftime(),
                        "Instigator": instigator,
                        "Instigator_email": instigator_email,
                        "Project_url": project_url}
@@ -106,7 +104,7 @@ def get_approve(url, meeting, result):
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
-        start=meeting.get('Start'),
+        start=meeting.get('Date'),
         result=result,
         project_url=meeting.get("Project_url"))
 
@@ -116,7 +114,7 @@ def get_don_t_know(url, meeting):
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
-        start=meeting.get('Start'),
+        start=meeting.get('Date'),
         project_url=meeting.get("Project_url"))
 
 
