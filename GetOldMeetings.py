@@ -27,12 +27,13 @@ def get_meetings_list(base_url, login, password, skip, top):
                             allow_redirects=False, verify=False).text
     meetings = json.loads(response)
     meetings_list = []
-    jira_base = "https://abderus.dept07/jira/browse"
     project_url = None
     for meeting in meetings.get('value'):
         if meeting['DeletionMark']:
             continue
 
+        stage = ''
+        project_name = ''
         for addinfo in meeting.get('ДополнительныеРеквизиты'):
             if addinfo.get('Свойство_Key') == "c8c16600-8138-11e5-9f46-e61f135f2c6f":
                 check_ma = re.search(r'MA|ma', addinfo.get('Значение'))
@@ -40,7 +41,15 @@ def get_meetings_list(base_url, login, password, skip, top):
                 project_number = re.search(r'\d{2,}', addinfo.get('Значение'))
                 if project_number is not None:
                     project_name = "{}{}".format(project_type, project_number.group(0))
-                    project_url = "{}/{}".format(jira_base, project_name)
+
+            if addinfo.get('Свойство_Key') == "ae454c9c-878e-11e5-9f46-e61f135f2c6f":
+                catalog_url = "Catalog_ЗначенияСвойствОбъектов(guid%20'{}')".format(
+                    addinfo.get('Значение'))
+                encoded = urllib.parse.urlencode(f).replace('+', '%20')
+                url = "{}/{}?{}".format(base_url, catalog_url, encoded)
+                response = requests.get(url=url, auth=credentials,
+                                        allow_redirects=False, verify=False).text
+                stage = json.loads(response).get('Description')
 
         url_user = "{}/Catalog_Пользователи(guid%20'{}')".format(base_url, meeting.get('Организатор'))
         encoded = urllib.parse.urlencode(f).replace('+', '%20')
@@ -49,45 +58,49 @@ def get_meetings_list(base_url, login, password, skip, top):
                                 allow_redirects=False, verify=False).text
 
         instigator = json.loads(response).get('Description')
-        # TODO Add stage to list
-        stage = ''
         start_time = datetime.strptime(
             meeting.get('ДатаНачала'), '%Y-%m-%dT%H:%M:%S')
 
         meeting_map = {"Name": meeting.get('Description'),
-                       "Date": start_time.strftime(),
+                       "Date": str(start_time),
                        "Stage": stage,
                        "Instigator": instigator,
-                       "Project_url": project_url}
+                       "Project_name": project_name}
         meetings_list.append(meeting_map)
     return meetings_list
 
 
-def add_to_file(filename, project, stage, author, date):
-    text = "{project};{stage};{author};{date}".format(
-        project=project, stage=stage, author=author, date=date)
+def add_to_file(filename, name, project, stage, author, date):
+    text = "{name};{project};{stage};{author};{date}".format(
+        name=name,project=project, stage=stage, author=author, date=date)
     with open(filename, 'a') as file:
         file.write(text + '\n')
+
 
 login = ''
 password = ''
 from_email = ''
 from_name = ''
 base_url = ''
-filename = ''
+filename = 'old_stat.txt'
 
 skip = 0
-top = 100
-meeting_list = get_meetings_list(base_url, login, password, skip, top)
-
-while len(meeting_list) > 0:
+top = 250
+end_list = False
+while not end_list:
+    meeting_list = get_meetings_list(base_url, login, password, skip, top)
     for meeting in meeting_list:
         add_to_file(
             filename,
-            project=meeting.get('Project_url'),
+            name=meeting.get('Name'),
+            project=meeting.get('Project_name'),
             stage=meeting.get('Stage'),
             author=meeting.get('Instigator'),
             date=meeting.get('Date'))
+
+    len_meeting = len(meeting_list)
+    end_list = (len_meeting == 0)
+    print('Обработано {}'.format(skip + len_meeting))
     skip = skip + top
-    meeting_list = get_meetings_list(base_url, login, password, skip, top)
+
 

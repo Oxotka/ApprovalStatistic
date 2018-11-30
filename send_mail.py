@@ -59,7 +59,7 @@ def get_meetings_list(base_url, login, password):
 
         meeting_map = {"Name": meeting.get('Description'),
                        "Start": start_time.strftime("%H:%M"),
-                       "Date": start_time.strftime(),
+                       "Date": str(start_time),
                        "Instigator": instigator,
                        "Instigator_email": instigator_email,
                        "Project_url": project_url}
