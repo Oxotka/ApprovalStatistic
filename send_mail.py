@@ -82,13 +82,14 @@ def template_letter(meeting):
                &nbsp&nbsp&nbsp&nbsp&nbsp
                <a href="{don_t_know}">Ни к чему не пришли</a>
                <br>
-               <br><b>Согласовано</b> - если совещание прошло эффективно и приняли решение. 
-               <br><b>Не согласовано</b> - если все было эффективно, но решение до конца не принято. 
+               <br><b>Согласовано</b> - если совещание прошло эффективно и приняли решение - этап пройден.
+               <br><b>Не согласовано</b> - есть замечания к предложенному варианту, 
+               из-за которых нужно проводить согласование по этому этапу еще раз.
                <br><b>Ни к чему не пришли</b> - если совещание прошло не эффективно и никакого результата нет.
                В этом случае опишите, что на Ваш взгляд пошло не так.
                </html></body>''')
 
-    url = 'http://localhost:8080'
+    url = ''
     return template.format(
         username=name(meeting.get('Instigator')),
         project_name=meeting.get('Name'),
@@ -96,7 +97,7 @@ def template_letter(meeting):
         approve=get_approve(url, meeting, True),
         don_t_approve=get_approve(url, meeting, False),
         don_t_know=get_don_t_know(url, meeting),
-        project_url=meeting.get('project_url'))
+        project_url=meeting.get('Project_url'))
 
 
 def get_approve(url, meeting, result):
@@ -129,8 +130,8 @@ def name(author):
 def send_message(from_email, from_name, meeting):
 
     from_full_name = '{from_name} <{from_email}>'.format(from_name=from_name, from_email=from_email)
-    to_email = from_email
-    # to_email = meeting.get('Instigator_email')
+    to_email = meeting.get('Instigator_email')
+    #to_email = from_email
 
     mail_coding = 'windows-1251'
     multi_msg = MIMEMultipart()
@@ -153,10 +154,9 @@ def send_message(from_email, from_name, meeting):
 login = ''
 password = ''
 from_email = ''
-from_name = ''
+from_name = 'Aripov Nikita'
 base_url = ''
 
 for meeting in get_meetings_list(base_url, login, password):
-    print(meeting)
     send_message(from_email, from_name, meeting)
 
