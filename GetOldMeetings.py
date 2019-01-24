@@ -27,7 +27,6 @@ def get_meetings_list(base_url, login, password, skip, top):
                             allow_redirects=False, verify=False).text
     meetings = json.loads(response)
     meetings_list = []
-    project_url = None
     for meeting in meetings.get('value'):
         if meeting['DeletionMark']:
             continue
@@ -79,8 +78,6 @@ def add_to_file(filename, name, project, stage, author, date):
 
 login = ''
 password = ''
-from_email = ''
-from_name = ''
 base_url = ''
 filename = 'old_stat.txt'
 

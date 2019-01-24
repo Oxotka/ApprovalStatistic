@@ -31,12 +31,13 @@ def get_meetings_list(base_url, login, password):
     meetings = json.loads(response)
     meetings_list = []
     jira_base = "https://abderus.dept07/jira/browse"
-    project_url = None
     for meeting in meetings.get('value'):
         if meeting['DeletionMark']:
             continue
-
+        project_url = ""
+        stage = ""
         for addinfo in meeting.get('ДополнительныеРеквизиты'):
+
             if addinfo.get('Свойство_Key') == "c8c16600-8138-11e5-9f46-e61f135f2c6f":
                 check_ma = re.search(r'MA|ma', addinfo.get('Значение'))
                 project_type = 'MA-' if check_ma is not None else 'EA-'
@@ -44,6 +45,14 @@ def get_meetings_list(base_url, login, password):
                 if project_number is not None:
                     project_name = "{}{}".format(project_type, project_number.group(0))
                     project_url = "{}/{}".format(jira_base, project_name)
+            if addinfo.get('Свойство_Key') == "ae454c9c-878e-11e5-9f46-e61f135f2c6f":
+                catalog_url = "Catalog_ЗначенияСвойствОбъектов(guid%20'{}')".format(
+                    addinfo.get('Значение'))
+                encoded = urllib.parse.urlencode(f).replace('+', '%20')
+                url = "{}/{}?{}".format(base_url, catalog_url, encoded)
+                response = requests.get(url=url, auth=credentials,
+                                        allow_redirects=False, verify=False).text
+                stage = json.loads(response).get('Description')
 
         url_user = "{}/Catalog_Пользователи(guid%20'{}')".format(base_url, meeting.get('Организатор'))
         encoded = urllib.parse.urlencode(f).replace('+', '%20')
@@ -60,6 +69,7 @@ def get_meetings_list(base_url, login, password):
         meeting_map = {"Name": meeting.get('Description'),
                        "Start": start_time.strftime("%H:%M"),
                        "Date": str(start_time),
+                       "Stage": stage,
                        "Instigator": instigator,
                        "Instigator_email": instigator_email,
                        "Project_url": project_url}
@@ -101,22 +111,24 @@ def template_letter(meeting):
 
 
 def get_approve(url, meeting, result):
-    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}'.format(
+    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
         start=meeting.get('Date'),
         result=result,
-        project_url=meeting.get("Project_url"))
+        project_url=meeting.get("Project_url"),
+        stage=meeting.get("Stage"))
 
 
 def get_don_t_know(url, meeting):
-    return '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}'.format(
+    return '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
         start=meeting.get('Date'),
-        project_url=meeting.get("Project_url"))
+        project_url=meeting.get("Project_url"),
+        stage=meeting.get("Stage"))
 
 
 def name(author):
@@ -130,8 +142,8 @@ def name(author):
 def send_message(from_email, from_name, meeting):
 
     from_full_name = '{from_name} <{from_email}>'.format(from_name=from_name, from_email=from_email)
-    to_email = meeting.get('Instigator_email')
-    #to_email = from_email
+    # to_email = meeting.get('Instigator_email')
+    to_email = from_email
 
     mail_coding = 'windows-1251'
     multi_msg = MIMEMultipart()
@@ -154,7 +166,7 @@ def send_message(from_email, from_name, meeting):
 login = ''
 password = ''
 from_email = ''
-from_name = 'Aripov Nikita'
+from_name = ''
 base_url = ''
 
 for meeting in get_meetings_list(base_url, login, password):
