@@ -3,7 +3,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import urllib
 import urllib.parse
 import smtplib
@@ -40,7 +40,16 @@ def get_meetings_list(base_url, login, password):
 
             if addinfo.get('Свойство_Key') == "c8c16600-8138-11e5-9f46-e61f135f2c6f":
                 check_ma = re.search(r'MA|ma', addinfo.get('Значение'))
-                project_type = 'MA-' if check_ma is not None else 'EA-'
+                check_gp = re.search(r'GP|gp', addinfo.get('Значение'))
+                check_npo = re.search(r'NPO|npo', addinfo.get('Значение'))
+                if check_gp:
+                    project_type = 'GP-'
+                elif check_npo:
+                    project_type = 'NPO-'
+                elif check_ma:
+                    project_type = 'MA-'
+                else:
+                    project_type = 'EA-'
                 project_number = re.search(r'\d{2,}', addinfo.get('Значение'))
                 if project_number is not None:
                     project_name = "{}{}".format(project_type, project_number.group(0))
@@ -72,6 +81,7 @@ def get_meetings_list(base_url, login, password):
                        "Stage": stage,
                        "Instigator": instigator,
                        "Instigator_email": instigator_email,
+                       "task_id": project_name,
                        "Project_url": project_url}
         meetings_list.append(meeting_map)
     return meetings_list
@@ -111,23 +121,27 @@ def template_letter(meeting):
 
 
 def get_approve(url, meeting, result):
-    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}&stage={stage}'.format(
+    return '{url}/add_vote?project={project}&author={name}&email={email}&result={result}&date={start}&project_url={project_url}&task_id={task_id}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
+        email=meeting.get('Instigator_email'),
         start=meeting.get('Date'),
         result=result,
         project_url=meeting.get("Project_url"),
+        task_id=meeting.get("task_id"),
         stage=meeting.get("Stage"))
 
 
 def get_don_t_know(url, meeting):
-    return '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}&stage={stage}'.format(
+    return '{url}/add_comment?project={project}&author={name}&email={email}&date={start}&project_url={project_url}&task_id={task_id}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
+        email=meeting.get('Instigator_email'),
         start=meeting.get('Date'),
         project_url=meeting.get("Project_url"),
+        task_id=meeting.get("task_id"),
         stage=meeting.get("Stage"))
 
 
