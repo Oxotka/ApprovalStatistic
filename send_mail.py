@@ -111,7 +111,7 @@ def template_letter(meeting):
 
 
 def get_approve(url, meeting, result):
-    return '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}&stage={stage}'.format(
+    result_url = '{url}/add_vote?project={project}&author={name}&result={result}&date={start}&project_url={project_url}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
@@ -119,16 +119,18 @@ def get_approve(url, meeting, result):
         result=result,
         project_url=meeting.get("Project_url"),
         stage=meeting.get("Stage"))
+    return result_url.replace(" ", "%20")
 
 
 def get_don_t_know(url, meeting):
-    return '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}&stage={stage}'.format(
+    result_url = '{url}/add_comment?project={project}&author={name}&date={start}&project_url={project_url}&stage={stage}'.format(
         url=url,
         project=meeting.get('Name').replace("\"", ""),
         name=meeting.get('Instigator'),
         start=meeting.get('Date'),
         project_url=meeting.get("Project_url"),
         stage=meeting.get("Stage"))
+    return result_url.replace(" ", "%20")
 
 
 def name(author):
